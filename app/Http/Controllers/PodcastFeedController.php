@@ -53,6 +53,7 @@ class PodcastFeedController extends Controller
         $programmeName = $first['radio_programmes']['name'] ?? $first['name'] ?? $programme;
         $siteUrl = $first['radio_programmes']['url'] ?? $first['url'] ?? url('/');
         $description = $first['radio_programmes']['description'] ?? $first['description'] ?? sprintf('Episodes for %s', $programmeName);
+        $imageUrl = $first['radio_programmes']['radio_photo_assets']['url'] ?? null;
         $selfUrl = $request->fullUrl();
         $language = 'nl-NL';
         $lastBuildDate = $this->formatRfc2822($first['from'] ?? null) ?? $this->formatRfc2822(now()->toDateTimeString());
@@ -67,7 +68,6 @@ class PodcastFeedController extends Controller
             $pubDate = $this->formatRfc2822($broadcast['from'] ?? null);
             $itemDescription = $broadcast['description'] ?? $description;
             $duration = $this->formatDuration($broadcast);
-            $enclosureLength = 0;
             $audioUrl = $broadcast['radio_audio_assets'][0]['url'] ?? null;
 
             $item = "    <item>\n";
@@ -103,6 +103,10 @@ class PodcastFeedController extends Controller
     <description>{$this->cdata($description)}</description>
     <language>{$this->xmlEscape($language)}</language>
     <lastBuildDate>{$lastBuildDate}</lastBuildDate>
+    <itunes:image href="{$this->xmlEscape($imageUrl)}" />
+    <image>
+    <url>{$this->xmlEscape($imageUrl)}</url>
+</image>
     <atom:link href="{$this->xmlEscape($selfUrl)}" rel="self" type="application/rss+xml" />
 {$itemsXml}
   </channel>
