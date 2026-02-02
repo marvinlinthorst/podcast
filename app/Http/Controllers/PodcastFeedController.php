@@ -4,14 +4,17 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class PodcastFeedController extends Controller
 {
     public function __invoke(Request $request, string $channel, string $programme)
     {
-        $cachePath = storage_path('app/' . sprintf('npo-radio/%s/%s.json', $channel, $programme));
+        $cachePath = Storage::path( sprintf('npo-radio/%s/%s.json', $channel, $programme));
 
         if (!File::exists($cachePath)) {
+
             abort(404, 'Feed not found.');
         }
 
@@ -58,7 +61,7 @@ class PodcastFeedController extends Controller
 
         foreach ($broadcasts as $broadcast) {
 
-            $title = $broadcast['name'] ?? $programmeName;
+            $title = ($broadcast['name'] ?? $programmeName) . ' - ' . Carbon::make($broadcast['from'])->format('d-m-Y') . ' - ' . Carbon::make($broadcast['from'])->format('H:i');
             $link = $broadcast['url'] ?? $siteUrl;
             $guid = $broadcast['id'] ?? $broadcast['urn'] ?? md5($title.$link);
             $pubDate = $this->formatRfc2822($broadcast['from'] ?? null);
@@ -78,7 +81,7 @@ class PodcastFeedController extends Controller
             }
 
             if ($audioUrl) {
-                $item .= '      <enclosure url="'.$this->xmlEscape($audioUrl).'" length="'.$enclosureLength.'" type="audio/mpeg" />'."\n";
+                $item .= '      <enclosure url="'.$this->xmlEscape($audioUrl).'" type="audio/mp3" />'."\n";
             }
 
             if ($duration) {
