@@ -4,21 +4,13 @@ namespace App\Console\Commands;
 
 use App\Services\NpoRadioService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Fetch extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'app:fetch';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
     protected $description = 'Command description';
 
     /**
@@ -26,7 +18,17 @@ class Fetch extends Command
      */
     public function handle()
     {
-        app(NpoRadioService::class)->fetchAllBroadcasts('npo-3fm', '3voor12-radio');
+        collect(Storage::allFiles('npo-radio'))
+            ->each(function ($file) {
+                if (!Str::of($file)->endsWith('.json')) {
+                    return;
+                }
 
+                $programme = pathinfo($file, PATHINFO_FILENAME);
+
+                $channel = basename(dirname($file));
+
+                app(NpoRadioService::class)->fetchAllBroadcasts($channel, $programme);
+        });
     }
 }

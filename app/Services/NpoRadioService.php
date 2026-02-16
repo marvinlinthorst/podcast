@@ -104,12 +104,13 @@ QUERY;
 
     public function fetchAllBroadcasts(string $channel, string $programme): array
     {
-        $cacheFile = $this->getCacheFilePath($channel, $programme);
+        $cacheFile = sprintf('%s/%s/%s.json', self::CACHE_DIR, $channel, $programme);
 
         if (!Storage::exists($cacheFile)) {
             $history = $this->fetchBroadcastHistory($channel, $programme);
             $uniqueHistory = $this->mergeBroadcastsById($history, []);
-            $this->storeBroadcasts($cacheFile, $uniqueHistory);
+
+            Storage::put($cacheFile, json_encode($uniqueHistory, JSON_PRETTY_PRINT));
 
             return $uniqueHistory;
         }
@@ -122,14 +123,9 @@ QUERY;
         }
         $mergedBroadcasts = $this->mergeBroadcastsById($latestBroadcasts, $cachedBroadcasts);
 
-        $this->storeBroadcasts($cacheFile, $mergedBroadcasts);
+        Storage::put($cacheFile, json_encode($mergedBroadcasts, JSON_PRETTY_PRINT));
 
         return $mergedBroadcasts;
-    }
-
-    private function getCacheFilePath(string $channel, string $programme): string
-    {
-        return sprintf('%s/%s/%s.json', self::CACHE_DIR, $channel, $programme);
     }
 
     private function fetchBroadcastHistory(string $channel, string $programme): array
@@ -167,24 +163,7 @@ QUERY;
             return [];
         }
 
-        if (isset($decoded['data']['radio_broadcasts']['data']) && is_array($decoded['data']['radio_broadcasts']['data'])) {
-            return $decoded['data']['radio_broadcasts']['data'];
-        }
-
-        if (isset($decoded['broadcasts']) && is_array($decoded['broadcasts'])) {
-            return $decoded['broadcasts'];
-        }
-
-        if ($this->isListArray($decoded)) {
-            return $decoded;
-        }
-
-        return [];
-    }
-
-    private function storeBroadcasts(string $cacheFile, array $broadcasts): void
-    {
-        Storage::put($cacheFile, json_encode($broadcasts, JSON_PRETTY_PRINT));
+        return $decoded;
     }
 
     private function mergeBroadcastsById(array $incoming, array $existing): array
@@ -196,21 +175,11 @@ QUERY;
                 continue;
             }
 
-            if (!isset($broadcast['id'])) {
-                $mergedById[] = $broadcast;
-                continue;
-            }
-
             $mergedById[$broadcast['id']] = $broadcast;
         }
 
         foreach ($existing as $broadcast) {
             if (!is_array($broadcast)) {
-                continue;
-            }
-
-            if (!isset($broadcast['id'])) {
-                $mergedById[] = $broadcast;
                 continue;
             }
 
@@ -220,14 +189,5 @@ QUERY;
         }
 
         return array_values($mergedById);
-    }
-
-    private function isListArray(array $array): bool
-    {
-        if ($array === []) {
-            return true;
-        }
-
-        return array_keys($array) === range(0, count($array) - 1);
     }
 }
